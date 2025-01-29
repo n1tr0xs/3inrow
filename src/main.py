@@ -22,7 +22,6 @@ class Field:
         self.generate_pieces()  # self._pieces
 
     def generate_pieces(self):
-
         pieces = [
             Circle(self._background_color, self.piece_size, self.piece_size),
             Square(self._background_color, self.piece_size, self.piece_size),
@@ -68,10 +67,11 @@ class Field:
         self.screen.fill(self._background_color)
         self.draw_grid()
 
+        shift = (self.cell_size - self.piece_size) // 2
         for i in range(self.rows):
-            y = (i * self.cell_size) + (self.cell_size - self.piece_size) // 2
+            y = i * self.cell_size + shift
             for j in range(self.columns):
-                x = (j * self.cell_size) + (self.cell_size - self.piece_size) // 2
+                x = j * self.cell_size + shift
                 self._pieces[i][j].draw(self.screen, (x, y))
 
         pygame.display.flip()
@@ -115,7 +115,7 @@ class Circle(Piece):
 
         pygame.draw.circle(
             self.image, self._color,
-            (width // 2, height // 2), width // 2
+            (width // 2, height // 2), width // 2,
         )
 
     def __str__(self):
@@ -133,7 +133,7 @@ class Square(Piece):
 
         pygame.draw.rect(
             self.image, self._color,
-            (0, 0, width, height)
+            (0, 0, width, height),
         )
 
     def __str__(self):
@@ -151,7 +151,7 @@ class Triangle(Piece):
 
         pygame.draw.polygon(
             self.image, self._color,
-            ((0, height), (width // 2, 0), (width, height))
+            ((0, height), (width // 2, 0), (width, height)),
         )
 
     def __str__(self):
