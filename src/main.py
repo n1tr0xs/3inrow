@@ -1,35 +1,38 @@
 import random
 import pygame
 
-DISPLAY_SIZE = (1280, 720)
-
 pygame.init()
+
+WINDOW_SIZE = (640, 360)
+RESOLUTION = (1920, 1080)
+BACKGROUND_COLOR = (0, 0, 0)
+MAX_FPS = 20
 
 
 class Field:
-    _background_color = (0, 0, 0)
-    _grid_color = (255, 255, 255)
-    _shrink = .8
+    grid_color = (255, 255, 255)
+    grid_width = 2
+    piece_shrink = .8
 
-    def __init__(self, rows: int = 5, columns: int = 5):
-        self.cell_size = 60
-        self.piece_size = self.cell_size * self._shrink
+    def __init__(self, rows: int = 5, columns: int = 4):
         self.rows = rows
         self.columns = columns
 
-        self.screen = None
-        self._clock = pygame.time.Clock()
-        self.generate_pieces()  # self._pieces
+        self.surface = pygame.surface.Surface(RESOLUTION)
+
+        self.cell_size = (min(self.surface.get_size()) - self.grid_width * (max(self.rows, self.columns) + 1)) // max(self.rows, self.columns)
+        self.piece_size = self.cell_size * self.piece_shrink
+        self.clock = pygame.time.Clock()
+        self.generate_pieces()
 
     def generate_pieces(self):
         pieces = [
-            Circle(self._background_color, self.piece_size, self.piece_size),
-            Square(self._background_color, self.piece_size, self.piece_size),
-            Triangle(self._background_color, self.piece_size, self.piece_size),
+            Circle(self.piece_size),
+            Square(self.piece_size),
+            Triangle(self.piece_size),
         ]
 
-        self._pieces = [[None] * self.rows for i in range(self.columns)]
-
+        self._pieces = [[None] * self.columns for i in range(self.rows)]
         for row in range(self.rows):
             for col in range(self.columns):
                 random.shuffle(pieces)
@@ -47,122 +50,101 @@ class Field:
             return False
         return True
 
-    def run(self):
-        width = self.rows * self.cell_size
-        height = self.columns * self.cell_size
-        self.screen = pygame.display.set_mode((width, height))
-        running = True
-        while running:
+    def run(self, screen):
+        while True:
             while (event := pygame.event.poll()):
                 if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+                elif (event.type == pygame.KEYDOWN) and (event.key == pygame.K_ESCAPE):
+                    pygame.quit()
                     return
 
-            self.draw()
-            self._clock.tick(60)
+            self.draw(screen)
+            self.clock.tick(MAX_FPS)
 
-    def draw(self):
-        if not self.screen:
-            return
+    def draw(self, screen, dest=(0, 0)):
+        self.surface.fill(BACKGROUND_COLOR)
 
-        self.screen.fill(self._background_color)
-        self.draw_grid()
+        for i in range(self.rows + 1):
+            pygame.draw.line(
+                self.surface, self.grid_color,
+                (0, i * self.cell_size), (self.columns * self.cell_size, i * self.cell_size),
+                self.grid_width
+            )
+        for i in range(self.columns + 1):
+            pygame.draw.line(
+                self.surface, self.grid_color,
+                (i * self.cell_size, 0), (i * self.cell_size, self.rows * self.cell_size),
+                self.grid_width
+            )
 
         shift = (self.cell_size - self.piece_size) // 2
         for i in range(self.rows):
             y = i * self.cell_size + shift
             for j in range(self.columns):
                 x = j * self.cell_size + shift
-                self._pieces[i][j].draw(self.screen, (x, y))
+                self._pieces[i][j].draw(self.surface, (x, y))
 
-        pygame.display.flip()
-
-    def draw_grid(self):
-        if not self.screen:
-            return
-        # вертикальные линии
-        for i in range(1, self.rows):
-            pygame.draw.line(
-                self.screen, self._grid_color,
-                (self.cell_size * i, 0), (self.cell_size * i, self.cell_size * self.columns)
-            )
-        # горизонтальные линии
-        for i in range(1, self.columns):
-            pygame.draw.line(
-                self.screen, self._grid_color,
-                (0, self.cell_size * i), (self.cell_size * self.rows, self.cell_size * i)
-            )
+        scaled = pygame.transform.smoothscale(self.surface, (screen.get_size()))
+        screen.blit(scaled, dest)
+        pygame.display.update()
 
 
 class Piece:
-    def __init__(self, bg_color, width: int, height: int):
-        self.image = pygame.surface.Surface([width, height])
-        self.image.fill(bg_color)
+    color = (255, 255, 255)
 
-        self.rect = self.image.get_rect()
+    def __init__(self, size, background_color=BACKGROUND_COLOR):
+        self.surface = pygame.surface.Surface((size, size))
+        self.surface.set_colorkey(background_color)
+        self.surface.fill(background_color)
 
-    def draw(self, surface, center: tuple[int, int]):
-        surface.blit(self.image, center)
-
-    def __eq__(self, other: 'Piece'):
+    def __eq__(self, other):
         return isinstance(self, type(other))
 
-
-class Circle(Piece):
-    _color = 'green'
-
-    def __init__(self, bg_color, width: int, height: int):
-        super().__init__(bg_color, width, height)
-
-        pygame.draw.circle(
-            self.image, self._color,
-            (width // 2, height // 2), width // 2,
-        )
-
-    def __str__(self):
-        return 'Circle'
-
-    def __repr__(self):
-        return 'Circle'
+    def draw(self, screen, center):
+        screen.blit(self.surface, center)
 
 
 class Square(Piece):
-    _color = 'blue'
+    color = 'red'
 
-    def __init__(self, bg_color, width: int, height: int):
-        super().__init__(bg_color, width, height)
-
+    def __init__(self, size, background_color=BACKGROUND_COLOR):
+        super().__init__(size, background_color)
         pygame.draw.rect(
-            self.image, self._color,
-            (0, 0, width, height),
+            self.surface, self.color,
+            (0, 0, size, size),
         )
 
-    def __str__(self):
-        return 'Square'
 
-    def __repr__(self):
-        return 'Square'
+class Circle(Piece):
+    color = 'green'
+
+    def __init__(self, size, background_color=BACKGROUND_COLOR):
+        super().__init__(size, background_color)
+
+        pygame.draw.circle(
+            self.surface, self.color,
+            (size // 2, size // 2), size // 2
+        )
 
 
 class Triangle(Piece):
-    _color = 'red'
+    color = 'blue'
 
-    def __init__(self, bg_color, width: int, height: int):
-        super().__init__(bg_color, width, height)
+    def __init__(self, size, background_color=BACKGROUND_COLOR):
+        super().__init__(size, background_color)
 
         pygame.draw.polygon(
-            self.image, self._color,
-            ((0, height), (width // 2, 0), (width, height)),
+            self.surface, self.color,
+            ((0, size), (size // 2, 0), (size, size)),
         )
-
-    def __str__(self):
-        return 'Triangle'
-
-    def __repr__(self):
-        return 'Triangle'
 
 
 def main():
-    Field().run()
+    info = pygame.display.Info()
+    screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+    Field().run(screen)
 
 
 if __name__ == '__main__':
