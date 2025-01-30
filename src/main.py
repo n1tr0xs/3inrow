@@ -5,12 +5,12 @@ pygame.init()
 
 WINDOW_SIZE = (640, 360)
 RESOLUTION = (1920, 1080)
-BACKGROUND_COLOR = (0, 0, 0)
+BACKGROUND_COLOR = 'black'
 MAX_FPS = 20
 
 
 class Field:
-    grid_color = (255, 255, 255)
+    grid_color = 'white'
     grid_width = 2
     piece_shrink = .8
 
@@ -92,7 +92,7 @@ class Field:
 
 
 class Piece:
-    color = (255, 255, 255)
+    color = 'white'
 
     def __init__(self, size, background_color=BACKGROUND_COLOR):
         self.surface = pygame.surface.Surface((size, size))
