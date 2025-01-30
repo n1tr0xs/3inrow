@@ -3,7 +3,6 @@ import pygame
 
 pygame.init()
 
-WINDOW_SIZE = (640, 360)
 RESOLUTION = (1920, 1080)
 BACKGROUND_COLOR = 'black'
 MAX_FPS = 20
@@ -14,11 +13,11 @@ class Field:
     grid_width = 2
     piece_shrink = .8
 
-    def __init__(self, rows: int = 5, columns: int = 4):
+    def __init__(self, screen, rows: int = 5, columns: int = 4):
         self.rows = rows
         self.columns = columns
 
-        self.surface = pygame.surface.Surface(RESOLUTION)
+        self.surface = screen
 
         self.cell_size = (min(self.surface.get_size()) - self.grid_width * (max(self.rows, self.columns) + 1)) // max(self.rows, self.columns)
         self.piece_size = self.cell_size * self.piece_shrink
@@ -50,7 +49,8 @@ class Field:
             return False
         return True
 
-    def run(self, screen):
+    def run(self):
+        column_start = row_start = column_end = row_end = None
         while True:
             while (event := pygame.event.poll()):
                 if event.type == pygame.QUIT:
@@ -59,11 +59,25 @@ class Field:
                 elif (event.type == pygame.KEYDOWN) and (event.key == pygame.K_ESCAPE):
                     pygame.quit()
                     return
+                if (
+                    (event.type == pygame.MOUSEBUTTONUP)
+                    and (event.button == 1)
+                ):
+                    x, y = event.pos
+                    if column_start:
+                        column_end, row_end = x // self.cell_size, y // self.cell_size
+                        self.turn(row_start, column_start, row_end, column_end)
+                        column_start = row_start = column_end = row_end = None
+                    else:
+                        column_start, row_start = x // self.cell_size, y // self.cell_size
 
-            self.draw(screen)
+            self.draw()
             self.clock.tick(MAX_FPS)
 
-    def draw(self, screen, dest=(0, 0)):
+    def turn(self, rs, cs, re, ce):
+        self._pieces[rs][cs], self._pieces[re][ce] = self._pieces[re][ce], self._pieces[rs][cs]
+
+    def draw(self, dest=(0, 0)):
         self.surface.fill(BACKGROUND_COLOR)
 
         for i in range(self.rows + 1):
@@ -86,8 +100,6 @@ class Field:
                 x = j * self.cell_size + shift
                 self._pieces[i][j].draw(self.surface, (x, y))
 
-        scaled = pygame.transform.smoothscale(self.surface, (screen.get_size()))
-        screen.blit(scaled, dest)
         pygame.display.update()
 
 
@@ -143,8 +155,8 @@ class Triangle(Piece):
 
 def main():
     info = pygame.display.Info()
-    screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-    Field().run(screen)
+    screen = pygame.display.set_mode((info.current_w, info.current_h))
+    Field(screen).run()
 
 
 if __name__ == '__main__':
