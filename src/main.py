@@ -38,7 +38,9 @@ class Field:
                 for piece in pieces:
                     if self.is_valid(row, col, piece):
                         self._pieces[row][col] = piece
+                        print(piece, end=' ')
                         break
+            print()
         return self._pieces
 
     def is_valid(self, row: int, col: int, piece: 'Piece'):
@@ -75,7 +77,38 @@ class Field:
             self.clock.tick(MAX_FPS)
 
     def turn(self, rs, cs, re, ce):
+        if abs(re - rs) > 1:
+            return
+        if abs(ce - cs) > 1:
+            return
+        if abs(ce - cs) == 1 and abs(re - rs) == 1:
+            return
+        if self.rows <= rs < 0:
+            return
+        if self.rows <= re < 0:
+            return
+        if self.columns <= cs < 0:
+            return
+        if self.columns <= ce < 0:
+            return
+
         self._pieces[rs][cs], self._pieces[re][ce] = self._pieces[re][ce], self._pieces[rs][cs]
+        self.blow()
+
+    def blow(self):
+        k = 3
+        for i in range(self.rows):
+            for j in range(self.columns - 2):
+                if len(set(self._pieces[i][j:j + k])) == 1:
+                    self._pieces[i][j:j + k] = [Empty(self.piece_size)] * k
+        for i in range(self.rows - 2):
+            for j in range(self.columns):
+                temp = set()
+                for n in range(k):
+                    temp.add(self._pieces[i + n][j])
+                if len(temp) == 1:
+                    for n in range(k):
+                        self._pieces[i + n][j] = Empty(self.piece_size)
 
     def draw(self, dest=(0, 0)):
         self.surface.fill(BACKGROUND_COLOR)
@@ -105,6 +138,7 @@ class Field:
 
 class Piece:
     color = 'white'
+    name = 'piece'
 
     def __init__(self, size, background_color=BACKGROUND_COLOR):
         self.surface = pygame.surface.Surface((size, size))
@@ -114,12 +148,19 @@ class Piece:
     def __eq__(self, other):
         return isinstance(self, type(other))
 
+    def __str__(self):
+        return self.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     def draw(self, screen, center):
         screen.blit(self.surface, center)
 
 
 class Square(Piece):
     color = 'red'
+    name = 'square'
 
     def __init__(self, size, background_color=BACKGROUND_COLOR):
         super().__init__(size, background_color)
@@ -131,6 +172,7 @@ class Square(Piece):
 
 class Circle(Piece):
     color = 'green'
+    name = 'circle'
 
     def __init__(self, size, background_color=BACKGROUND_COLOR):
         super().__init__(size, background_color)
@@ -143,6 +185,7 @@ class Circle(Piece):
 
 class Triangle(Piece):
     color = 'blue'
+    name = 'triangle'
 
     def __init__(self, size, background_color=BACKGROUND_COLOR):
         super().__init__(size, background_color)
@@ -150,6 +193,19 @@ class Triangle(Piece):
         pygame.draw.polygon(
             self.surface, self.color,
             ((0, size), (size // 2, 0), (size, size)),
+        )
+
+
+class Empty(Piece):
+    color = 'black'
+    name = 'empty'
+
+    def __init__(self, size, background_color=BACKGROUND_COLOR):
+        super().__init__(size, background_color)
+
+        pygame.draw.rect(
+            self.surface, self.color,
+            (0, 0, size, size),
         )
 
 
